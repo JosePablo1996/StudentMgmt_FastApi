@@ -2,26 +2,23 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Instalar solo lo esencial y limpiar cache
+# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar requirements e instalar dependencias
+# Copiar requirements primero para mejor cache
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
 
-# Copiar solo los archivos necesarios
-COPY main.py .
-COPY .env .  # Si usas .env en producción, sino quita esta línea
+# Instalar dependencias de Python
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Crear usuario no-root para seguridad
-RUN useradd -m -u 1000 renderuser && chown -R renderuser:renderuser /app
-USER renderuser
+# Copiar el resto de los archivos
+COPY . .
 
+# Exponer puerto
 EXPOSE 8000
 
 # Comando para producción
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
